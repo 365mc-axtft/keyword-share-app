@@ -18,6 +18,10 @@ export const env = {
   maxUploadMb: Number(process.env.MAX_UPLOAD_MB ?? 25),
   maxUploadMegapixels: Number(process.env.MAX_UPLOAD_MEGAPIXELS ?? 100),
   publicDemoEnabled: (process.env.PUBLIC_DEMO_ENABLED ?? "true") === "true",
+  // 테스트 단계에서 로그인 화면을 건너뛰기 위한 임시 스위치 (기본 false = 로그인 필수).
+  // true이면 모든 API 요청이 고정된 테스트 계정으로 자동 인증된다 — 운영 전환 시
+  // 반드시 이 값을 지우거나 false로 되돌려야 한다 (middleware/auth.ts 참고).
+  authDisabled: (process.env.AUTH_DISABLED ?? "false") === "true",
   paidOcr: {
     provider: process.env.PAID_OCR_PROVIDER ?? "",
     apiKey: process.env.PAID_OCR_API_KEY ?? "",

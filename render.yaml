@@ -31,6 +31,13 @@ services:
         value: "100"
       - key: PUBLIC_DEMO_ENABLED
         value: "true"
+      # 테스트 단계 임시 스위치: 로그인 없이 바로 사용. 실제 운영 전환 시 이 두 값을
+      # 지우거나 "false"로 바꾸고 재배포하세요 (Render 서비스 Environment 탭에서 수정
+      # 가능, 코드를 다시 올릴 필요 없음).
+      - key: AUTH_DISABLED
+        value: "true"
+      - key: VITE_AUTH_DISABLED
+        value: "true"
       - key: VITE_API_BASE_URL
         value: "/api"
       - key: NODE_VERSION

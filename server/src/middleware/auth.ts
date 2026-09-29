@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../lib/jwt";
-import { db } from "../db";
+import { db, newId } from "../db";
+import { hashPassword } from "../lib/password";
+import { env } from "../env";
 
 export interface AuthUser {
   id: string;
@@ -19,11 +21,55 @@ declare global {
   }
 }
 
+// AUTH_DISABLED=true(테스트 단계 임시 스위치, env.ts 참고)일 때 모든 요청에 붙는
+// 고정 테스트 계정. 비밀번호는 무작위로 생성해 저장하므로(아무도 모름), 나중에
+// AUTH_DISABLED를 다시 끄더라도 이 계정으로 실제 로그인은 되지 않는다 — 순수하게
+// "로그인 화면 없이 써보기" 용도의 임시 자리표시자다.
+const NO_AUTH_TEST_EMAIL = "test@no-auth.local";
+let cachedTestUser: AuthUser | null = null;
+
+async function getOrCreateNoAuthTestUser(): Promise<AuthUser> {
+  if (cachedTestUser) return cachedTestUser;
+  let row = await db("users").where({ email: NO_AUTH_TEST_EMAIL }).first();
+  if (!row) {
+    const companyId = newId();
+    await db("companies").insert({
+      id: companyId,
+      name: "테스트 회사 (로그인 비활성 모드)",
+      created_at: new Date(),
+    });
+    const userId = newId();
+    await db("users").insert({
+      id: userId,
+      company_id: companyId,
+      email: NO_AUTH_TEST_EMAIL,
+      password_hash: await hashPassword(newId()), // 무작위 비밀번호 — 아무도 이 값을 모름
+      name: "테스트 사용자",
+      global_role: "ADMIN",
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+    row = await db("users").where({ id: userId }).first();
+  }
+  cachedTestUser = {
+    id: row.id,
+    companyId: row.company_id,
+    globalRole: row.global_role,
+    name: row.name,
+    email: row.email,
+  };
+  return cachedTestUser;
+}
+
 /**
  * 서버에서 실제로 검증하는 인증 미들웨어. 프런트가 role을 어떻게 그리든
  * 여기를 통과하지 못하면 어떤 API도 실행되지 않는다.
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (env.authDisabled) {
+    req.user = await getOrCreateNoAuthTestUser();
+    return next();
+  }
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {
     return res.status(401).json({ error: "AUTH_REQUIRED", message: "로그인이 필요합니다." });
