@@ -1,0 +1,20 @@
+version: "3.9"
+
+# 로컬 개발용 PostgreSQL. 운영 배포 시에는 관리형 DB(RDS, Supabase 등)를
+# 쓰고 DATABASE_URL만 바꿔도 됩니다. 이 compose 파일은 앱 서버를 포함하지
+# 않습니다 — 서버/프런트는 일반 Node 호스팅에 직접 배포하는 것을 전제로 합니다.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_dev_password
+      POSTGRES_DB: keyword_share
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
